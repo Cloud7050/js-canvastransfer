@@ -11,8 +11,10 @@
 	};
 	/* eslint-enable camelcase */
 
+	// Eg question_26789
 	const REGEX_QUESTION_ID = /^question_(?<id>\d+)$/u;
-	const REGEX_ANSWER_ID = /^answer-(?<id>\d+)$/u;
+	// Eg answer-7050 for results, or question_26789_answer_7050 for ongoing
+	const REGEX_ANSWER_ID = /^(?:question_\d+_)?answer[-_](?<id>\d+)$/u;
 
 	const LOCAL_STORAGE_KEY = "CanvasTransfer";
 
@@ -20,57 +22,75 @@
 
 	class QuestionInfo {
 		constructor(
-			questionId,
-			questionType,
-			answerInfo
+			id,
+			type,
+			answerInfos
 		) {
 			Object.assign(
 				this,
 				{
-					questionId,
-					questionType,
-					answerInfo
+					id,
+					type,
+					// Processing must return all answer elements to faciliate importing
+					answerInfos
 				}
 			);
 		}
 
 		export() {
 			return {
-				questionId: this.questionId,
-				questionType: this.questionType,
-				answerInfo: this.answerInfo.export()
+				id: this.id,
+				type: this.type,
+				answerInfos: this.answerInfos.map((answerInfo) => answerInfo.export())
 			};
 		}
 	}
 
 	class AnswerInfo {
 		constructor(
-			questionType,
-			answers
+			id,
+			element
 		) {
 			Object.assign(
 				this,
 				{
-					questionType,
-					answers
+					id,
+					element
 				}
 			);
 		}
 
 		export() {
 			return {
-				questionType: this.questionType,
-				answers: this.answers
+				id: this.id
 			};
 		}
 	}
 
 	class ChoicesAnswerInfo extends AnswerInfo {
-		constructor(checkedAnswerIds) {
+		constructor(
+			id,
+			element,
+
+			checked
+		) {
 			super(
-				QuestionType.CHOICES,
-				checkedAnswerIds
+				id,
+				element
 			);
+
+			Object.assign(
+				this,
+				{ checked }
+			);
+		}
+
+		export() {
+			return {
+				...super.export(),
+
+				checked: this.checked
+			};
 		}
 	}
 
@@ -110,19 +130,28 @@
 		);
 	}
 
+	function removeIfExists(array, element) {
+		let index = array.indexOf(element);
+		if (index === -1) return false;
+
+		array.splice(index, 1);
+		return true;
+	}
+
 
 
 	class QuestionManager {
 		cannotProceed = false;
 
-		successCount = 0;
-		questionCount = 0;
 		questionInfos = [];
 
 		constructor(scan) {
+			let successCount = 0;
+			let questionCount = 0;
+
 			for (let question of scan.questions) {
-				this.questionCount++;
-				l(`⚙️ Processing page's Q${this.questionCount}...`, true);
+				questionCount++;
+				l(`⚙️ Processing page's Q${questionCount}...`, true);
 
 				// Process question ID
 				let elementId = question.id;
@@ -142,44 +171,47 @@
 				let questionId = parseInt(result.groups.id);
 
 				// Process question type
-				let questionType = this.#processQuestionType;
+				let questionType = this.#processQuestionType(question);
 				if (questionType === QuestionType.UNKNOWN) {
-					e("⚠️ This queston type isn't supported");
+					e("⚠️ This question type isn't supported");
 					console.groupEnd();
 					continue;
 				}
 
-				let answerInfo = null;
-				if (scan.extractorMode) {
-					// Process question for answer info
+				// Process answer infos
+				let answersHolder = question.querySelector("div.answers");
+				if (answersHolder === null) {
+					e("No answers holder found in question");
+					console.groupEnd();
+					continue;
+				}
 
-					let answersHolder = question.querySelector("div.answers");
-					if (answersHolder === null) {
-						e("No answers holder found in question");
-						console.groupEnd();
-						continue;
-					}
+				let answerInfos = [];
+				switch (questionType) {
+					case QuestionType.CHOICES:
+						answerInfos = this.#processAnswersChoices(answersHolder);
+						break;
+				}
 
-					switch (questionType) {
-						case QuestionType.CHOICES:
-							answerInfo = this.#processAnswerChoices(answersHolder);
-							break;
-					}
+				if (answerInfos.length === 0) {
+					// Rely on processing methods above to give error feedback
+					console.groupEnd();
+					continue;
 				}
 
 				let questionInfo = new QuestionInfo(
 					questionId,
 					questionType,
-					answerInfo
+					answerInfos
 				);
 				d(questionInfo);
 
 				this.questionInfos.push(questionInfo);
-				this.successCount++;
+				successCount++;
 				console.groupEnd();
 			}
 
-			l(`📦 Processed ${this.successCount}/${this.questionCount} questions`);
+			l(`📦 Processed ${successCount}/${questionCount} questions`);
 			d(this.questionInfos);
 		}
 
@@ -191,34 +223,42 @@
 			return QuestionType.UNKNOWN;
 		}
 
-		#processAnswerChoices(answersHolder) {
+		#processAnswersChoices(answersHolder) {
 			let radioButtons = answersHolder.querySelectorAll("input[type=radio]");
 			if (radioButtons.length === 0) {
 				e("No radio buttons found in answers holder");
 				return null;
 			}
 
-			let checkedAnswerIds = [];
+			let answerInfos = [];
 			for (let radioButton of radioButtons) {
-				if (radioButton.checked) {
-					let elementId = radioButton.id;
-					if (elementId === "") {
-						e("Radio button has no element ID");
-						continue;
-					}
-
-					let result = REGEX_ANSWER_ID.exec(elementId);
-					if (result === null) {
-						e("Unrecognised element ID format for radio button");
-						continue;
-					}
-
-					let answerId = parseInt(result.groups.id);
-					checkedAnswerIds.push(answerId);
+				// Process answer ID
+				let elementId = radioButton.id;
+				if (elementId === "") {
+					e("Radio button has no element ID");
+					continue;
 				}
+
+				let result = REGEX_ANSWER_ID.exec(elementId);
+				if (result === null) {
+					e("Unrecognised element ID format for radio button");
+					continue;
+				}
+
+				let answerId = parseInt(result.groups.id);
+
+				// Process checked status
+				let { checked } = radioButton;
+
+				let answerInfo = new ChoicesAnswerInfo(
+					answerId,
+					radioButton,
+					checked
+				);
+				answerInfos.push(answerInfo);
 			}
 
-			return new ChoicesAnswerInfo(checkedAnswerIds);
+			return answerInfos;
 		}
 
 		store() {
@@ -259,11 +299,138 @@
 				return;
 			}
 
-			this.questions = questionsHolder.querySelectorAll("div.question");
+			let questionSelector = "div.question";
+			// NodeList to array for array methods
+			this.questions = Array.from(
+				questionsHolder.querySelectorAll(questionSelector)
+			);
+
+			// A question may be nested within another question as text. Remove any such nested
+			// questions.
+			// Make a copy as elements may be removed from any point of this.questions
+			let questionsToCheck = [...this.questions];
+			while (questionsToCheck.length > 0) {
+				let questionToCheck = questionsToCheck.shift();
+
+				let nestedQuestions = questionToCheck.querySelectorAll(questionSelector);
+				for (let nestedQuestion of nestedQuestions) {
+					removeIfExists(this.questions, nestedQuestion);
+
+					// For efficiency, don't check inside removed question if it has yet to be
+					// checked
+					removeIfExists(questionsToCheck, nestedQuestion);
+				}
+			}
 		}
 
 		process() {
 			return new QuestionManager(this);
+		}
+	}
+
+	class StoredData {
+		#questionInfos = [];
+
+		cannotProceed = false;
+
+		data = null;
+
+		constructor(questionManager) {
+			// Clone for #importOne() to progressively remove overwritten questions
+			this.#questionInfos = [...questionManager.questionInfos];
+
+			let rawData = localStorage.getItem(LOCAL_STORAGE_KEY);
+			if (rawData === null) {
+				e("⛔ Did not find any stored answers to retrieve. Run this script on your quiz results (not an ongoing attempt) to extract those answers first");
+				this.cannotProceed = true;
+				return;
+			}
+
+			try {
+				this.data = JSON.parse(rawData);
+			} catch (syntaxError) {
+				e("Stored data unreadable");
+				e(syntaxError);
+				this.cannotProceed = true;
+				return;
+			}
+
+			l("✨ Stored answers retrieved");
+			d(this.data);
+		}
+
+		import() {
+			let successCount = 0;
+			let dataCount = 0;
+
+			for (let questionData of this.data) {
+				dataCount++;
+				l(`🔮 Importing stored answer data #${dataCount}...`, true);
+
+				try {
+					let success = this.#importOne(questionData);
+					if (success) successCount++;
+				} catch (error) {
+					e("⛔ Your stored answer is in a different format. You may be running a newer version of the script on outdated data - try re-extracting your answers");
+					e(error);
+					console.groupEnd();
+					continue;
+				}
+
+				console.groupEnd();
+			}
+
+			l(`☁️ Imported ${successCount}/${dataCount} answer data`);
+		}
+
+		// Question data is from storage with answers, question info is fresh from page with
+		// elements
+		#importOne(questionData) {
+			let index = this.#questionInfos.findIndex(
+				(questionInfo) => questionInfo.id === questionData.id
+			);
+			if (index === -1) {
+				e("⚠️ Your stored answer doesn't match any of this quiz's processed questions");
+				return false;
+			}
+
+			let questionInfo = this.#questionInfos[index];
+			switch (questionData.type) {
+				case QuestionType.CHOICES:
+					this.#importAnswerChoices(
+						questionInfo,
+						questionData
+					);
+					break;
+				default:
+					e("Stored question type not supported");
+					return false;
+			}
+
+			this.#questionInfos.splice(index, 1);
+			return true;
+		}
+
+		#importAnswerChoices(questionInfo, questionData) {
+			// Clone to remove imported answer data
+			let answerDatas = [...questionData.answerInfos];
+
+			for (let answerInfo of questionInfo.answerInfos) {
+				// For each element, try to find data of the same answer ID. If found, overwrite
+				// checked status (be it checking or unchecking)
+
+				let index = answerDatas.findIndex(
+					(answerData) => answerData.id === answerInfo.id
+				);
+				if (index === -1) {
+					e("Answer info is missing corresponding answer data");
+					continue;
+				}
+
+				let answerData = answerDatas[index];
+				answerInfo.element.checked = answerData.checked;
+				answerDatas.splice(index, 1);
+			}
 		}
 	}
 
@@ -279,10 +446,10 @@
 		questionManager.store();
 		l("✅ Your answers have been extracted & stored. Run this script again on an ongoing quiz attempt to import them");
 	} else {
-		let storedData = new StoredData();
+		let storedData = new StoredData(questionManager);
 		if (storedData.cannotProceed) return;
 
-		questionManager.import(storedData);
+		storedData.import();
 		l("✅ Your answers have been retrieved & imported. Matching questions have been overwritten");
 	}
 })();
