@@ -14,6 +14,8 @@
 	const REGEX_QUESTION_ID = /^question_(?<id>\d+)$/u;
 	const REGEX_ANSWER_ID = /^answer-(?<id>\d+)$/u;
 
+	const LOCAL_STORAGE_KEY = "CanvasTransfer";
+
 
 
 	class QuestionInfo {
@@ -217,6 +219,15 @@
 			}
 
 			return new ChoicesAnswerInfo(checkedAnswerIds);
+		}
+
+		store() {
+			let data = this.questionInfos.map((questionInfo) => questionInfo.export());
+			d(data);
+			localStorage.setItem(
+				LOCAL_STORAGE_KEY,
+				JSON.stringify(data)
+			);
 		}
 	}
 
