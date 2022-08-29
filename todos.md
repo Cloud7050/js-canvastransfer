@@ -7,7 +7,7 @@
 	- Multiple Response Questions (MRQs)
 	- Multiple Choice Questions (MCQs) & true-or-false questions
 - Extract:
-	- Each question's text, its answer text, and your answer(s)
+	- Each question's text, its answers' text, and your answers
 	- Each question's marks, if available
 	- Interpret embedded images' sources for text
 	- Local storage convenience
@@ -26,7 +26,7 @@
 - Question types:
 	- True/false questions
 - Extract:
-	- Each question ID, its answer IDs, and your answer(s)
+	- Each question ID, its answer IDs, and your answers
 	- Local storage convenience
 - Import:
 	- Answers by question
@@ -36,9 +36,8 @@
 ## Missing Transferrable Features
 
 - Question types:
-	- Fill in multiple blanks questions
-	- Short answer questions
-	- Multiple answers questions (MAQs)
+	- Multiple blank & short answer questions
+	- Multiple Answer Questions (MAQs)
 - Extract:
 	- Each question's marks, if available
 - Import:
@@ -47,5 +46,7 @@
 
 ## Currently Unsupported Features
 
+- Essay questions
+- File upload questions
 - Question types I have yet to encounter in a testable environment
 - Paged quiz import
