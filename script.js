@@ -1,9 +1,4 @@
 (() => {
-	// const NodeInfoType = {
-	// 	NORMAL: "normal",
-	// 	IMAGE: "image"
-	// };
-
 	const QuestionType = {
 		CHOICES: "choices",
 
@@ -16,48 +11,10 @@
 	};
 	/* eslint-enable camelcase */
 
-	// const WHITELISTED_NODE_TYPES = [
-	// 	Node.ELEMENT_NODE,
-	// 	Node.TEXT_NODE
-	// ];
-
 	const REGEX_QUESTION_ID = /^question_(?<id>\d+)$/u;
 	const REGEX_ANSWER_ID = /^answer-(?<id>\d+)$/u;
 
 
-
-	// class NodeInfo {
-	// 	constructor(
-	// 		type,
-	// 		text
-	// 	) {
-	// 		Object.assign(
-	// 			this,
-	// 			{
-	// 				type,
-	// 				text
-	// 			}
-	// 		);
-	// 	}
-	// }
-
-	// class NormalText extends NodeInfo {
-	// 	constructor(text) {
-	// 		super(
-	// 			TextPartType.NORMAL,
-	// 			text
-	// 		);
-	// 	}
-	// }
-
-	// class ImageSource extends NodeInfo {
-	// 	constructor(source) {
-	// 		super(
-	// 			TextPartType.IMAGE,
-	// 			source
-	// 		);
-	// 	}
-	// }
 
 	class QuestionInfo {
 		constructor(
@@ -150,38 +107,6 @@
 				: `*** ${content}`
 		);
 	}
-
-	// function processNodeInfos(node) {
-	// 	function processOne() {
-	// 		if (
-	// 			// Non-element nodes won't have .matches()
-	// 			node?.matches("img")
-	// 		) return new ImageSource(node.src);
-
-	// 		return new NormalText(node.textContent);
-	// 	}
-
-
-
-	// 	let filteredChildNodes = node.childNodes.filter(
-	// 		(childNode) => WHITELISTED_NODE_TYPES.includes(childNode.nodeType)
-	// 	);
-
-	// 	let nodeInfos = [];
-	// 	if (filteredChildNodes.length === 0) {
-	// 		// Base case.
-	// 		// Reached the end, no more children. Process the node itself
-	// 		let nodeInfo = processOne(node);
-	// 		nodeInfos.push(nodeInfo);
-	// 	} else {
-	// 		// Recurse
-	// 		filteredChildNodes.forEach((childNode) => {
-	// 			nodeInfos = [...nodeInfos, ...processNodeInfos(childNode, node)];
-	// 		});
-	// 	}
-
-	// 	return nodeInfos;
-	// }
 
 
 
