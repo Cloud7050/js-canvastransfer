@@ -29,19 +29,14 @@
 	- Multiple Choice Questions (MCQs) & true/false questions
 - Extract:
 	- Each question ID, its answer IDs, and your answers
+	- Each question's marks, if available
 	- Local storage convenience
 - Import:
 	- Answers by question
 	- Any question order
 	- Any answer order within same question
-	- Trigger event for autosave, question list update, unanswered alert
-
-## Missing Transferrable Features
-
-- Extract:
-	- Each question's marks, if available
-- Import:
 	- Mark-based highlighting, if available
+	- Trigger event for autosave, question list update, unanswered alert
 
 ## Currently Unsupported Features
 
