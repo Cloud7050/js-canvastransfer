@@ -24,7 +24,7 @@
 ## Transferred Features
 
 - Question types:
-	- True/false questions
+	- Multiple Choice Questions (MCQs) & true/false questions
 - Extract:
 	- Each question ID, its answer IDs, and your answers
 	- Local storage convenience
