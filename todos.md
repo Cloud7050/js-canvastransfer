@@ -34,13 +34,13 @@
 	- Answers by question
 	- Any question order
 	- Any answer order within same question
+	- Trigger event for autosave, question list update, unanswered alert
 
 ## Missing Transferrable Features
 
 - Extract:
 	- Each question's marks, if available
 - Import:
-	- Trigger event for question list status
 	- Mark-based highlighting, if available
 
 ## Currently Unsupported Features
