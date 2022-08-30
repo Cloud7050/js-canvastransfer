@@ -24,6 +24,7 @@
 ## Transferred Features
 
 - Question types:
+	- Multiple blank & short answer questions
 	- Multiple Answer Questions (MAQs)
 	- Multiple Choice Questions (MCQs) & true/false questions
 - Extract:
@@ -36,13 +37,11 @@
 
 ## Missing Transferrable Features
 
-- Question types:
-	- Multiple blank & short answer questions
 - Extract:
 	- Each question's marks, if available
 - Import:
-	- Mark-based highlighting, if available
 	- Trigger event for question list status
+	- Mark-based highlighting, if available
 
 ## Currently Unsupported Features
 
