@@ -7,6 +7,7 @@
 
 	/* eslint-disable camelcase */
 	const CLASS_QUESTION_TYPE = {
+		multiple_choice_question: QuestionType.CHOICES,
 		true_false_question: QuestionType.CHOICES
 	};
 	/* eslint-enable camelcase */
@@ -418,7 +419,6 @@
 			for (let answerInfo of questionInfo.answerInfos) {
 				// For each element, try to find data of the same answer ID. If found, overwrite
 				// checked status (be it checking or unchecking)
-
 				let index = answerDatas.findIndex(
 					(answerData) => answerData.id === answerInfo.id
 				);
