@@ -357,7 +357,7 @@
 				l("📈 Using extractor mode");
 				this.extractorMode = true;
 			} else if (questionsHolder.classList.contains("assessing")) {
-				// Ongoing quiz
+				// Ongoing attempt
 				l("🪄 Using importer mode");
 				this.extractorMode = false;
 			} else {
