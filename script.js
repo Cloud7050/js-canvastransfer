@@ -1,5 +1,6 @@
 (() => {
 	const QuestionType = {
+		BLANKS: "blanks",
 		CHOICES: "choices",
 
 		UNKNOWN: "unknown"
@@ -7,6 +8,8 @@
 
 	/* eslint-disable camelcase */
 	const CLASS_QUESTION_TYPE = {
+		fill_in_multiple_blanks_question: QuestionType.BLANKS,
+		short_answer_question: QuestionType.BLANKS,
 		multiple_answers_question: QuestionType.CHOICES,
 		multiple_choice_question: QuestionType.CHOICES,
 		true_false_question: QuestionType.CHOICES
@@ -54,6 +57,27 @@
 				this,
 				{ element }
 			);
+		}
+	}
+
+	class BlanksAnswerInfo extends AnswerInfo {
+		constructor(
+			input,
+			text
+		) {
+			super(
+				input
+			);
+			Object.assign(
+				this,
+				{ text }
+			);
+		}
+
+		export() {
+			return {
+				text: this.text
+			};
 		}
 	}
 
@@ -171,21 +195,17 @@
 				}
 
 				// Process answer infos
-				let answersHolder = question.querySelector("div.answers");
-				if (answersHolder === null) {
-					e("No answers holder found in question");
-					console.groupEnd();
-					continue;
-				}
-
-				let answerInfos = [];
+				let answerInfos = null;
 				switch (questionType) {
+					case QuestionType.BLANKS:
+						answerInfos = this.#processAnswerBlanks(question);
+						break;
 					case QuestionType.CHOICES:
-						answerInfos = this.#processAnswerChoices(answersHolder);
+						answerInfos = this.#processAnswerChoices(question);
 						break;
 				}
 
-				if (answerInfos.length === 0) {
+				if (answerInfos === null) {
 					// Rely on processing methods above to give error feedback
 					console.groupEnd();
 					continue;
@@ -215,10 +235,32 @@
 			return QuestionType.UNKNOWN;
 		}
 
-		#processAnswerChoices(answersHolder) {
-			let inputs = answersHolder.querySelectorAll("input[type=radio], input[type=checkbox]");
+		#processAnswerBlanks(question) {
+			let inputs = question.querySelectorAll("input[type=text]");
 			if (inputs.length === 0) {
-				e("No inputs found in answers holder");
+				e("No inputs found in question");
+				return null;
+			}
+
+			let answerInfos = [];
+			for (let input of inputs) {
+				// Process text
+				let text = input.value;
+
+				let answerInfo = new BlanksAnswerInfo(
+					input,
+					text
+				);
+				answerInfos.push(answerInfo);
+			}
+
+			return answerInfos;
+		}
+
+		#processAnswerChoices(question) {
+			let inputs = question.querySelectorAll("input[type=radio], input[type=checkbox]");
+			if (inputs.length === 0) {
+				e("No inputs found in question");
 				return null;
 			}
 
@@ -379,6 +421,12 @@
 
 			let questionInfo = this.#questionInfos[index];
 			switch (questionData.type) {
+				case QuestionType.BLANKS:
+					this.#importAnswerBlanks(
+						questionInfo,
+						questionData
+					);
+					break;
 				case QuestionType.CHOICES:
 					this.#importAnswerChoices(
 						questionInfo,
@@ -392,6 +440,16 @@
 
 			this.#questionInfos.splice(index, 1);
 			return true;
+		}
+
+		#importAnswerBlanks(questionInfo, questionData) {
+			// Assumption: Stored answer data count matches that of QuestionInfo#AnswerInfo
+			for (let i = 0; i < questionInfo.answerInfos.length; i++) {
+				let blanksAnswerInfo = questionInfo.answerInfos[i];
+				let blanksAnswerData = questionData.answerInfos[i];
+
+				blanksAnswerInfo.element.value = blanksAnswerData.text;
+			}
 		}
 
 		#importAnswerChoices(questionInfo, questionData) {
