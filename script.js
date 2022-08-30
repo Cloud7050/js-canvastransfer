@@ -161,6 +161,21 @@
 		return true;
 	}
 
+	function triggerUpdate(element) {
+		// Event has to be change event, and must bubble, in order to:
+		// • Trigger autosave
+		// • Update question list status (eg icons)
+		// • Prevent unanswered question alert (if all filled)
+		element.dispatchEvent(
+			new Event(
+				"change",
+				{
+					bubbles: true
+				}
+			)
+		);
+	}
+
 
 
 	class QuestionManager {
@@ -418,8 +433,8 @@
 				e("⚠️ Your stored answer doesn't match any of this quiz's processed questions");
 				return false;
 			}
-
 			let questionInfo = this.#questionInfos[index];
+
 			switch (questionData.type) {
 				case QuestionType.BLANKS:
 					this.#importAnswerBlanks(
@@ -449,6 +464,7 @@
 				let blanksAnswerData = questionData.answerInfos[i];
 
 				blanksAnswerInfo.element.value = blanksAnswerData.text;
+				triggerUpdate(blanksAnswerInfo.element);
 			}
 		}
 
@@ -466,9 +482,11 @@
 					e("Answer info is missing corresponding answer data");
 					continue;
 				}
-
 				let choicesAnswerData = choicesAnswerDatas[index];
+
 				choicesAnswerInfo.element.checked = choicesAnswerData.checked;
+				triggerUpdate(choicesAnswerInfo.element);
+
 				choicesAnswerDatas.splice(index, 1);
 			}
 		}
