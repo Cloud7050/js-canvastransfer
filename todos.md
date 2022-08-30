@@ -24,6 +24,7 @@
 ## Transferred Features
 
 - Question types:
+	- Multiple Answer Questions (MAQs)
 	- Multiple Choice Questions (MCQs) & true/false questions
 - Extract:
 	- Each question ID, its answer IDs, and your answers
@@ -37,7 +38,6 @@
 
 - Question types:
 	- Multiple blank & short answer questions
-	- Multiple Answer Questions (MAQs)
 - Extract:
 	- Each question's marks, if available
 - Import:
