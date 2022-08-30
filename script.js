@@ -49,45 +49,35 @@
 	}
 
 	class AnswerInfo {
+		constructor(element) {
+			Object.assign(
+				this,
+				{ element }
+			);
+		}
+	}
+
+	class ChoicesAnswerInfo extends AnswerInfo {
 		constructor(
+			input,
 			id,
-			element
+			checked
 		) {
+			super(
+				input
+			);
 			Object.assign(
 				this,
 				{
 					id,
-					element
+					checked
 				}
 			);
 		}
 
 		export() {
 			return {
-				id: this.id
-			};
-		}
-	}
-
-	class ChoicesAnswerInfo extends AnswerInfo {
-		constructor(
-			id,
-			input,
-			checked
-		) {
-			super(
-				id,
-				input
-			);
-			Object.assign(
-				this,
-				{ checked }
-			);
-		}
-
-		export() {
-			return {
-				...super.export(),
+				id: this.id,
 				checked: this.checked
 			};
 		}
@@ -246,8 +236,8 @@
 				let { checked } = input;
 
 				let answerInfo = new ChoicesAnswerInfo(
-					answerId,
 					input,
+					answerId,
 					checked
 				);
 				answerInfos.push(answerInfo);
@@ -406,22 +396,22 @@
 
 		#importAnswerChoices(questionInfo, questionData) {
 			// Clone for removing imported answer data
-			let answerDatas = [...questionData.answerInfos];
+			let choicesAnswerDatas = [...questionData.answerInfos];
 
-			for (let answerInfo of questionInfo.answerInfos) {
+			for (let choicesAnswerInfo of questionInfo.answerInfos) {
 				// For each element, try to find data of the same answer ID. If found, overwrite
 				// checked status (be it checking or unchecking)
-				let index = answerDatas.findIndex(
-					(answerData) => answerData.id === answerInfo.id
+				let index = choicesAnswerDatas.findIndex(
+					(answerData) => answerData.id === choicesAnswerInfo.id
 				);
 				if (index === -1) {
 					e("Answer info is missing corresponding answer data");
 					continue;
 				}
 
-				let answerData = answerDatas[index];
-				answerInfo.element.checked = answerData.checked;
-				answerDatas.splice(index, 1);
+				let choicesAnswerData = choicesAnswerDatas[index];
+				choicesAnswerInfo.element.checked = choicesAnswerData.checked;
+				choicesAnswerDatas.splice(index, 1);
 			}
 		}
 	}
