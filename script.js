@@ -462,47 +462,19 @@
 
 			switch (questionData.type) {
 				case QuestionType.BLANKS:
-					this.#importAnswerBlanks(
-						questionInfo,
-						questionData
-					);
+					this.#importAnswerBlanks(questionInfo, questionData);
 					break;
 				case QuestionType.CHOICES:
-					this.#importAnswerChoices(
-						questionInfo,
-						questionData
-					);
+					this.#importAnswerChoices(questionInfo, questionData);
 					break;
 				default:
 					e("Stored question type not supported");
 					return false;
 			}
 
+			this.#highlightQuestion(questionInfo, questionData);
+
 			this.#questionInfos.splice(index, 1);
-
-			// If marks available, label question
-			if (questionData.maxMarks !== -1) {
-				let marksHolder = questionInfo.element.querySelector("span.question_points_holder");
-				if (marksHolder === null) w("No marks holder found in question");
-				else {
-					let isFullMarks = questionData.actualMarks === questionData.maxMarks;
-
-					let arrow = document.createElement("span");
-					let arrowAttribute = "canvas-transfer";
-					arrow.setAttribute(arrowAttribute, "");
-					arrow.textContent = `☁️ ${questionData.actualMarks} pts`;
-					arrow.classList.add("answer_arrow");
-					arrow.classList.add(isFullMarks ? "correct" : "incorrect");
-					arrow.style.right = "75px";
-					arrow.style["min-width"] = "0px";
-
-					let potentialExistingArrow = marksHolder.querySelector(`[${arrowAttribute}]`);
-					potentialExistingArrow?.remove();
-
-					marksHolder.prepend(arrow);
-				}
-			}
-
 			return true;
 		}
 
@@ -538,6 +510,31 @@
 
 				choicesAnswerDatas.splice(index, 1);
 			}
+		}
+
+		#highlightQuestion(questionInfo, questionData) {
+			if (questionData.maxMarks === -1) return;
+
+			let header = questionInfo.element.querySelector("div.header");
+			if (header === null) {
+				w("No header found in question");
+				return;
+			}
+
+			let pointsHolder = header.querySelector("span.question_points_holder");
+			if (pointsHolder === null) {
+				w("No points holder found in header");
+				return;
+			}
+
+			let isFullMarks = questionData.actualMarks === questionData.maxMarks;
+			let rgb = (isFullMarks)
+				? "85 255 170" // Greenish blue
+				: "255 170 0"; // Orange
+
+			header.style["background-color"] = `rgb(${rgb} / 20%)`;
+
+			pointsHolder.textContent = `☁️ ${questionData.actualMarks} / ${questionData.maxMarks} pts`;
 		}
 	}
 
