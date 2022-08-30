@@ -7,6 +7,7 @@
 
 	/* eslint-disable camelcase */
 	const CLASS_QUESTION_TYPE = {
+		multiple_answers_question: QuestionType.CHOICES,
 		multiple_choice_question: QuestionType.CHOICES,
 		true_false_question: QuestionType.CHOICES
 	};
@@ -71,15 +72,13 @@
 	class ChoicesAnswerInfo extends AnswerInfo {
 		constructor(
 			id,
-			element,
-
+			input,
 			checked
 		) {
 			super(
 				id,
-				element
+				input
 			);
-
 			Object.assign(
 				this,
 				{ checked }
@@ -89,7 +88,6 @@
 		export() {
 			return {
 				...super.export(),
-
 				checked: this.checked
 			};
 		}
@@ -131,6 +129,16 @@
 		);
 	}
 
+	function extractRegexId(element, regex) {
+		let elementId = element.id;
+		if (elementId === "") return -1;
+
+		let result = regex.exec(elementId);
+		if (result === null) return -1;
+
+		return parseInt(result.groups.id);
+	}
+
 	function removeIfExists(array, element) {
 		let index = array.indexOf(element);
 		if (index === -1) return false;
@@ -155,26 +163,19 @@
 				l(`⚙️ Processing page's Q${questionCount}...`, true);
 
 				// Process question ID
-				let elementId = question.id;
-				if (elementId === "") {
-					e("Question has no element ID");
+				let questionId = extractRegexId(question, REGEX_QUESTION_ID);
+				if (questionId === -1) {
+					e("Unable to extract ID from question");
 					console.groupEnd();
 					continue;
 				}
-
-				let result = REGEX_QUESTION_ID.exec(elementId);
-				if (result === null) {
-					e("Unrecognised element ID format for question");
-					console.groupEnd();
-					continue;
-				}
-
-				let questionId = parseInt(result.groups.id);
 
 				// Process question type
 				let questionType = this.#processQuestionType(question);
 				if (questionType === QuestionType.UNKNOWN) {
 					e("⚠️ This question type isn't supported");
+					// DOMTokenList to array for cleaner formatting
+					d([...question.classList]);
 					console.groupEnd();
 					continue;
 				}
@@ -190,7 +191,7 @@
 				let answerInfos = [];
 				switch (questionType) {
 					case QuestionType.CHOICES:
-						answerInfos = this.#processAnswersChoices(answersHolder);
+						answerInfos = this.#processAnswerChoices(answersHolder);
 						break;
 				}
 
@@ -224,36 +225,29 @@
 			return QuestionType.UNKNOWN;
 		}
 
-		#processAnswersChoices(answersHolder) {
-			let radioButtons = answersHolder.querySelectorAll("input[type=radio]");
-			if (radioButtons.length === 0) {
-				e("No radio buttons found in answers holder");
+		#processAnswerChoices(answersHolder) {
+			let inputs = answersHolder.querySelectorAll("input[type=radio], input[type=checkbox]");
+			if (inputs.length === 0) {
+				e("No inputs found in answers holder");
 				return null;
 			}
 
 			let answerInfos = [];
-			for (let radioButton of radioButtons) {
+			for (let input of inputs) {
 				// Process answer ID
-				let elementId = radioButton.id;
-				if (elementId === "") {
-					e("Radio button has no element ID");
+				let answerId = extractRegexId(input, REGEX_ANSWER_ID);
+				if (answerId === -1) {
+					e("Unable to extract answer ID from input");
+					console.groupEnd();
 					continue;
 				}
-
-				let result = REGEX_ANSWER_ID.exec(elementId);
-				if (result === null) {
-					e("Unrecognised element ID format for radio button");
-					continue;
-				}
-
-				let answerId = parseInt(result.groups.id);
 
 				// Process checked status
-				let { checked } = radioButton;
+				let { checked } = input;
 
 				let answerInfo = new ChoicesAnswerInfo(
 					answerId,
-					radioButton,
+					input,
 					checked
 				);
 				answerInfos.push(answerInfo);
@@ -302,9 +296,7 @@
 
 			let questionSelector = "div.question";
 			// NodeList to array for array methods
-			this.questions = Array.from(
-				questionsHolder.querySelectorAll(questionSelector)
-			);
+			this.questions = [...questionsHolder.querySelectorAll(questionSelector)];
 
 			// A question may be nested within another question as text. Remove any such nested
 			// questions.
@@ -413,7 +405,7 @@
 		}
 
 		#importAnswerChoices(questionInfo, questionData) {
-			// Clone to remove imported answer data
+			// Clone for removing imported answer data
 			let answerDatas = [...questionData.answerInfos];
 
 			for (let answerInfo of questionInfo.answerInfos) {
