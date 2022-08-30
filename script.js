@@ -20,6 +20,7 @@
 	const REGEX_QUESTION_ID = /^question_(?<id>\d+)$/u;
 	// Eg answer-7050 for results, or question_26789_answer_7050 for ongoing
 	const REGEX_ANSWER_ID = /^(?:question_\d+_)?answer[-_](?<id>\d+)$/u;
+	const REGEX_MARKS = /^(?<actualMarks>\d+(?:\.\d+)?) \/ (?<maxMarks>\d+(?:\.\d+)?) pts$/u;
 
 	const LOCAL_STORAGE_KEY = "CanvasTransfer";
 
@@ -29,7 +30,10 @@
 		constructor(
 			id,
 			type,
-			answerInfos
+			answerInfos,
+			element,
+			actualMarks,
+			maxMarks
 		) {
 			Object.assign(
 				this,
@@ -37,7 +41,10 @@
 					id,
 					type,
 					// Processing must return all answer elements to faciliate importing
-					answerInfos
+					answerInfos,
+					element,
+					actualMarks,
+					maxMarks
 				}
 			);
 		}
@@ -46,7 +53,9 @@
 			return {
 				id: this.id,
 				type: this.type,
-				answerInfos: this.answerInfos.map((answerInfo) => answerInfo.export())
+				answerInfos: this.answerInfos.map((answerInfo) => answerInfo.export()),
+				actualMarks: this.actualMarks,
+				maxMarks: this.maxMarks
 			};
 		}
 	}
@@ -226,10 +235,26 @@
 					continue;
 				}
 
+				// Process marks, if available
+				let actualMarks = -1;
+				let maxMarks = -1;
+				let marksHolder = question.querySelector("div.user_points");
+				if (marksHolder !== null) {
+					let marksText = marksHolder.innerText;
+					let result = REGEX_MARKS.exec(marksText);
+					if (result !== null) {
+						actualMarks = parseFloat(result.groups.actualMarks);
+						maxMarks = parseFloat(result.groups.maxMarks);
+					}
+				}
+
 				let questionInfo = new QuestionInfo(
 					questionId,
 					questionType,
-					answerInfos
+					answerInfos,
+					question,
+					actualMarks,
+					maxMarks
 				);
 				d(questionInfo);
 
@@ -454,6 +479,30 @@
 			}
 
 			this.#questionInfos.splice(index, 1);
+
+			// If marks available, label question
+			if (questionData.maxMarks !== -1) {
+				let marksHolder = questionInfo.element.querySelector("span.question_points_holder");
+				if (marksHolder === null) w("No marks holder found in question");
+				else {
+					let isFullMarks = questionData.actualMarks === questionData.maxMarks;
+
+					let arrow = document.createElement("span");
+					let arrowAttribute = "canvas-transfer";
+					arrow.setAttribute(arrowAttribute, "");
+					arrow.textContent = `☁️ ${questionData.actualMarks} pts`;
+					arrow.classList.add("answer_arrow");
+					arrow.classList.add(isFullMarks ? "correct" : "incorrect");
+					arrow.style.right = "75px";
+					arrow.style["min-width"] = "0px";
+
+					let potentialExistingArrow = marksHolder.querySelector(`[${arrowAttribute}]`);
+					potentialExistingArrow?.remove();
+
+					marksHolder.prepend(arrow);
+				}
+			}
+
 			return true;
 		}
 
