@@ -2,6 +2,7 @@
 	const QuestionType = {
 		BLANKS: "blanks",
 		CHOICES: "choices",
+		DROPDOWNS: "dropdowns",
 
 		UNKNOWN: "unknown"
 	};
@@ -12,7 +13,8 @@
 		short_answer_question: QuestionType.BLANKS,
 		multiple_answers_question: QuestionType.CHOICES,
 		multiple_choice_question: QuestionType.CHOICES,
-		true_false_question: QuestionType.CHOICES
+		true_false_question: QuestionType.CHOICES,
+		matching_question: QuestionType.DROPDOWNS
 	};
 	/* eslint-enable camelcase */
 
@@ -40,7 +42,7 @@
 				{
 					id,
 					type,
-					// Processing must return all answer elements to faciliate importing
+					// Processing must return all answer elements to facilitate importing
 					answerInfos,
 					element,
 					actualMarks,
@@ -74,9 +76,7 @@
 			input,
 			text
 		) {
-			super(
-				input
-			);
+			super(input);
 			Object.assign(
 				this,
 				{ text }
@@ -96,9 +96,7 @@
 			id,
 			checked
 		) {
-			super(
-				input
-			);
+			super(input);
 			Object.assign(
 				this,
 				{
@@ -112,6 +110,30 @@
 			return {
 				id: this.id,
 				checked: this.checked
+			};
+		}
+	}
+
+	class DropdownsAnswerInfo extends AnswerInfo {
+		constructor(
+			select,
+			answerId,
+			optionId
+		) {
+			super(select);
+			Object.assign(
+				this,
+				{
+					id: answerId,
+					optionId
+				}
+			);
+		}
+
+		export() {
+			return {
+				id: this.id,
+				optionId: this.optionId
 			};
 		}
 	}
@@ -160,14 +182,6 @@
 		if (result === null) return -1;
 
 		return parseInt(result.groups.id);
-	}
-
-	function removeIfExists(array, element) {
-		let index = array.indexOf(element);
-		if (index === -1) return false;
-
-		array.splice(index, 1);
-		return true;
 	}
 
 	function triggerUpdate(element) {
@@ -227,6 +241,9 @@
 					case QuestionType.CHOICES:
 						answerInfos = this.#processAnswerChoices(question);
 						break;
+					case QuestionType.DROPDOWNS:
+						answerInfos = this.#processAnswerDropdowns(question);
+						break;
 				}
 
 				if (answerInfos === null) {
@@ -240,6 +257,7 @@
 				let maxMarks = -1;
 				let marksHolder = question.querySelector("div.user_points");
 				if (marksHolder !== null) {
+					// Don't use .textContent as it returns everything, including whitespace
 					let marksText = marksHolder.innerText;
 					let result = REGEX_MARKS.exec(marksText);
 					if (result !== null) {
@@ -328,6 +346,40 @@
 			return answerInfos;
 		}
 
+		#processAnswerDropdowns(question) {
+			// Assumption: All expected elements are present and in the right quantities
+
+			// Exclude:
+			// • Extra "answer" divs that just contain the correct answer when viewing results
+			// • The "answer" div within the above type of full-opacity answer div
+			let answers = question.querySelectorAll("div.answer:not(.full-opacity):not(.full-opacity *)");
+			let answerInfos = [];
+			for (let answer of answers) {
+				let select = answer.querySelector("select");
+				let answerId = extractRegexId(select, REGEX_ANSWER_ID);
+				if (answerId === -1) {
+					// This question type is an anomaly when viewing results:
+					// • The AnswerInfo element does not have an ID which would contain the answer
+					// ID
+					// • There are hidden spans containing additional data such as answer ID and
+					// option ID
+					answerId = parseInt(
+						answer.querySelector("span.id").innerText
+					);
+				}
+
+				let optionId = answer.querySelector("span.match_id")?.innerText;
+
+				let answerInfo = new DropdownsAnswerInfo(
+					select,
+					answerId,
+					optionId
+				);
+				answerInfos.push(answerInfo);
+			}
+			return answerInfos;
+		}
+
 		store() {
 			let data = this.questionInfos.map((questionInfo) => questionInfo.export());
 			d(data);
@@ -366,26 +418,11 @@
 				return;
 			}
 
-			let questionSelector = "div.question";
+			// We exclude questions that are nested within another question as text.
 			// NodeList to array for array methods
-			this.questions = [...questionsHolder.querySelectorAll(questionSelector)];
-
-			// A question may be nested within another question as text. Remove any such nested
-			// questions.
-			// Make a copy as elements may be removed from any point of this.questions
-			let questionsToCheck = [...this.questions];
-			while (questionsToCheck.length > 0) {
-				let questionToCheck = questionsToCheck.shift();
-
-				let nestedQuestions = questionToCheck.querySelectorAll(questionSelector);
-				for (let nestedQuestion of nestedQuestions) {
-					removeIfExists(this.questions, nestedQuestion);
-
-					// For efficiency, don't check inside removed question if it has yet to be
-					// checked
-					removeIfExists(questionsToCheck, nestedQuestion);
-				}
-			}
+			this.questions = [
+				...questionsHolder.querySelectorAll("div.question:not(div.question *)")
+			];
 		}
 
 		process() {
@@ -467,6 +504,9 @@
 				case QuestionType.CHOICES:
 					this.#importAnswerChoices(questionInfo, questionData);
 					break;
+				case QuestionType.DROPDOWNS:
+					this.#importAnswerDropdowns(questionInfo, questionData);
+					break;
 				default:
 					e("Stored question type not supported");
 					return false;
@@ -509,6 +549,23 @@
 				triggerUpdate(choicesAnswerInfo.element);
 
 				choicesAnswerDatas.splice(index, 1);
+			}
+		}
+
+		#importAnswerDropdowns(questionInfo, questionData) {
+			let dropdownsAnswerDatas = questionData.answerInfos;
+			for (let dropdownsAnswerInfo of questionInfo.answerInfos) {
+				let index = dropdownsAnswerDatas.findIndex(
+					(answerData) => answerData.id === dropdownsAnswerInfo.id
+				);
+				if (index === -1) {
+					e("Answer info is missing corresponding answer data");
+					continue;
+				}
+				let dropdownsAnswerData = dropdownsAnswerDatas[index];
+
+				dropdownsAnswerInfo.element.value = dropdownsAnswerData.optionId;
+				triggerUpdate(dropdownsAnswerInfo.element);
 			}
 		}
 
