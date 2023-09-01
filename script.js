@@ -352,7 +352,7 @@
 			// Exclude:
 			// • Extra "answer" divs that just contain the correct answer when viewing results
 			// • The "answer" div within the above type of full-opacity answer div
-			let answers = question.querySelectorAll("div.answer:not(.full-opacity):not(.full-opacity *)");
+			let answers = question.querySelectorAll("div.answer:not(.full-opacity, .full-opacity *)");
 			let answerInfos = [];
 			for (let answer of answers) {
 				let select = answer.querySelector("select");
