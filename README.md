@@ -11,7 +11,8 @@ Helpful for:
 
 Supported question types:
 
-- Multiple blank & short answer questions
+- Multiple blank questions & short answer questions
+- Dropdown list questions
 - Multiple Answer Questions (MAQs)
 - Multiple Choice Questions (MCQs) & true/false questions
 
@@ -35,4 +36,4 @@ Video showcase: <https://youtu.be/ubRTrj8sAx4>
 
 ## Note
 
-Keep an eye out for any yellow warnings (or even red errors) that the script may log while running. You may need to respond appropriately to issues the script encounters (eg checking that an impacted question has the expected answers after importing). Feel free to contact me about bugs or features on Discord @ Cloud#4535
+Keep an eye out for any yellow warnings (or even red errors) that the script may log while running. You may need to respond appropriately to issues the script encounters (eg checking that an impacted question has the expected answers after importing). Feel free to contact me about bugs or features on Discord @ cloud7050
