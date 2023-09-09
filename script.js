@@ -118,14 +118,14 @@
 		constructor(
 			select,
 			answerId,
-			optionId
+			text
 		) {
 			super(select);
 			Object.assign(
 				this,
 				{
 					id: answerId,
-					optionId
+					text
 				}
 			);
 		}
@@ -133,7 +133,7 @@
 		export() {
 			return {
 				id: this.id,
-				optionId: this.optionId
+				text: this.text
 			};
 		}
 	}
@@ -175,7 +175,12 @@
 	}
 
 	function extractRegexId(element, regex) {
+		// Try ID
 		let elementId = element.id;
+		if (elementId === "") {
+			// Try for attribute instead, eg labels
+			elementId = element.htmlFor;
+		}
 		if (elementId === "") return -1;
 
 		let result = regex.exec(elementId);
@@ -356,24 +361,19 @@
 			let answerInfos = [];
 			for (let answer of answers) {
 				let select = answer.querySelector("select");
-				let answerId = extractRegexId(select, REGEX_ANSWER_ID);
-				if (answerId === -1) {
-					// This question type is an anomaly when viewing results:
-					// • The AnswerInfo element does not have an ID which would contain the answer
-					// ID
-					// • There are hidden spans containing additional data such as answer ID and
-					// option ID
-					answerId = parseInt(
-						answer.querySelector("span.id").innerText
-					);
-				}
 
-				let optionId = answer.querySelector("span.match_id")?.innerText;
+				let label = answer.querySelector("label");
+				let answerId = extractRegexId(label, REGEX_ANSWER_ID);
+
+				// We take raw text instead of IDs, as the non-displayed ID could be the provided
+				// solution instead of the user's selection (which may be wrong)
+				let option = select.options[select.selectedIndex];
+				let text = option.textContent;
 
 				let answerInfo = new DropdownsAnswerInfo(
 					select,
 					answerId,
-					optionId
+					text
 				);
 				answerInfos.push(answerInfo);
 			}
@@ -553,19 +553,23 @@
 		}
 
 		#importAnswerDropdowns(questionInfo, questionData) {
+			// Assumption: All expected elements are present and in the right quantities
+
 			let dropdownsAnswerDatas = questionData.answerInfos;
 			for (let dropdownsAnswerInfo of questionInfo.answerInfos) {
 				let index = dropdownsAnswerDatas.findIndex(
 					(answerData) => answerData.id === dropdownsAnswerInfo.id
 				);
-				if (index === -1) {
-					e("Answer info is missing corresponding answer data");
-					continue;
-				}
 				let dropdownsAnswerData = dropdownsAnswerDatas[index];
 
-				dropdownsAnswerInfo.element.value = dropdownsAnswerData.optionId;
-				triggerUpdate(dropdownsAnswerInfo.element);
+				// Find the option with text matching the data
+				let select = dropdownsAnswerInfo.element;
+				let matchingOption = [...select.options].find(
+					(option) => option.textContent === dropdownsAnswerData.text
+				);
+				matchingOption.selected = true;
+
+				triggerUpdate(select);
 			}
 		}
 
