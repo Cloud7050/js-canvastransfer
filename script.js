@@ -418,11 +418,12 @@
 				return;
 			}
 
-			// We exclude questions that are nested within another question as text.
-			// NodeList to array for array methods
-			this.questions = [
-				...questionsHolder.querySelectorAll("div.question:not(div.question *)")
-			];
+			// Exclude:
+			// • Questions only for displaying text, which can't be answered and thus aren't real questions
+			// • Questions that are nested within another question as text
+			let nodeList = questionsHolder.querySelectorAll("div.question:not(.text_only_question, div.question *)");
+			// Convert to array for array methods
+			this.questions = [...nodeList];
 		}
 
 		process() {
