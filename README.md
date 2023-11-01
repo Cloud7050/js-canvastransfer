@@ -22,7 +22,7 @@ This script works by extracting and storing your quiz results' questions and ans
 
 ## Instructions
 
-You do not need to download/install anything or know how to code to use these scripts.
+You do not need to download/install anything or know how to code to use this script.
 
 1. **Copy script**: Open the script's contents and copy them in their *entirety* (try <kbd>Ctrl</kbd>-<kbd>A</kbd> + <kbd>Ctrl</kbd>-<kbd>C</kbd>). [Here's a convenient link to it](https://raw.githubusercontent.com/Cloud7050/js-canvastransfer/master/script.js)
 2. **Go to quiz results**: Go to the page with your quiz *results* that you want to extract (*not* an ongoing attempt)
